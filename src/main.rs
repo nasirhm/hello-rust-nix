@@ -4,11 +4,17 @@
 #[macro_use]
 extern crate rocket;
 
+// Importing the OpenAPI macros
+#[macro_use]
+extern crate rocket_okapi;
+
 use serde::*;
 use rocket_contrib::json::Json;
+use rocket_okapi::JsonSchema;
+use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 
 /// Host information structure returned at /hostinfo
-#[derive(Serialize, Debug)]
+#[derive(Serialize, JsonSchema, Debug)]
 struct HostInfo {
     hostname: String,
     pid: u32,
@@ -16,6 +22,7 @@ struct HostInfo {
 }
 
 // Create route / that returns "Hello, world!"
+#[openapi]
 #[get("/")]
 fn index() -> &'static str {
     "Hello, World!"
@@ -23,6 +30,7 @@ fn index() -> &'static str {
 
 /// Create route /hostinfo that returns information about the host serving 
 /// this page.
+#[openapi]
 #[get("/hostinfo")]
 fn hostinfo() -> Json<HostInfo> {
     // gets the current machine hostname or "unknown" if the hostname
@@ -40,6 +48,19 @@ fn hostinfo() -> Json<HostInfo> {
                       // very unlikely to fail.
             .as_secs(),
     })
+}
+
+fn main() {
+    rocket::ignite()
+        .mount("/", routes_with_openapi![index, hostinfo])
+        .mount(
+            "/swagger_ui/",
+            make_swagger_ui(&SwaggerUIConfig {
+                url: Some("../openapi.json".to_owned()),
+                urls: None,
+                }),
+            )
+        .launch();
 }
 
 #[cfg(test)] // Only compile this when unit testing is requested
@@ -67,10 +88,4 @@ mod tests {
     // Ensure the body is what we expect it to be
     assert_eq!(response.body_string(), Some("Hello, World!".into()));
   }
-}
-
-fn main() {
-    rocket::ignite()
-        .mount("/", routes![index, hostinfo])
-        .launch();
 }
