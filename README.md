@@ -115,6 +115,8 @@ It has the following testcases:
    - and, ensures, we get the correct / current hostname, process id and uptime (in secs).
    - in JSON schema.
 
+### Credits
+
 **Thank You,** [Xe](https://github.com/xe) for writing the following awesome articles from which I created this short project for learning more about Rust and Nix:
 
 - [How I Start: Nix](https://christine.website/blog/how-i-start-nix-2020-03-08)
