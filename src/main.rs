@@ -66,6 +66,7 @@ mod tests {
                 // the parent module.
   use rocket::http::Status;
   use rocket::local::*;
+  use serde_json::json;
 
   #[test]
   fn test_index() {
@@ -83,5 +84,43 @@ mod tests {
 
     // Ensure the body is what we expect it to be
     assert_eq!(response.body_string(), Some("Hello, World!".into()));
+  }
+
+  #[test]
+  fn test_hostinfo() {
+      // Create the rocket instance to test
+      let rkt = rocket::ignite().mount("/", routes![hostinfo]);
+
+      // Create a HTTP client bound to this rocket instance
+      let client = Client::new(rkt).expect("valid rocket");
+
+      // get a HTTP response
+      let mut response = client.get("/hostinfo").dispatch();
+
+      // Ensure it returns HTTP 200 OK
+      assert_eq!(response.status(), Status::Ok);
+
+      // Creating Response payload to match with the result
+      let hostname = gethostname::gethostname()
+          .into_string()
+          .unwrap();
+      let response_in_json = json!(HostInfo{
+          hostname: hostname,
+          pid: std::process::id(),
+          uptime: psutil::host::uptime()
+              .unwrap()
+              .as_secs(),
+      }).to_string();
+
+      // Print current payload
+      println!("Current Payload: {:?}", response_in_json);
+
+      let expected_response = response.body_string();
+
+      // Print expected payload
+      println!("Expected Payload: {:?}", expected_response);
+
+      // Ensure the body is what we expect it to be
+      assert_eq!(Some(response_in_json.into()), expected_response);
   }
 }
