@@ -12,6 +12,7 @@ use serde::*;
 use rocket_contrib::json::Json;
 use rocket_okapi::JsonSchema;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+use rocket_okapi::{OpenApiError, Result};
 
 /// Host information structure returned at /hostinfo
 #[derive(Serialize, JsonSchema, Debug)]
@@ -32,22 +33,17 @@ fn index() -> &'static str {
 /// this page.
 #[openapi]
 #[get("/hostinfo")]
-fn hostinfo() -> Json<HostInfo> {
-    // gets the current machine hostname or "unknown" if the hostname
-    // doesn't parse into UTF-8 (very unlikely)
-    let hostname = gethostname::gethostname()
-        .into_string()
-        //.or(|_| "unknown".to_string())
-        .unwrap();
-    
-    Json(HostInfo{
-        hostname: hostname,
-        pid: std::process::id(),
-        uptime: psutil::host::uptime()
-            .unwrap() // normally this is a bad idea, but this code is
-                      // very unlikely to fail.
-            .as_secs(),
-    })
+fn hostinfo() -> Result<Json<HostInfo>> {
+    match gethostname::gethostname().into_string() {
+        Ok(hostname) => Ok(Json(HostInfo {
+            hostname: hostname,
+            pid: std::process::id(),
+            uptime: psutil::host::uptime().unwrap().as_secs(),
+        })),
+        Err(_) => Err(OpenApiError::new(format!(
+                    "hostname does not parse as UTF-8"
+                    ))),
+    }
 }
 
 fn main() {
